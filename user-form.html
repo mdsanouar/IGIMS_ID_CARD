@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Your Details — IGIMS ID Card</title>
+<style>
+    :root {
+        --dark-blue: #002366;
+        --card-red: #cc0000;
+        --accent-orange: #e05a00;
+        --light-blue: #2f8fdb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #f0f2f7 0%, #dfe7f5 100%);
+        padding: 30px 20px;
+        display: flex;
+        justify-content: center;
+    }
+    .card {
+        width: 100%;
+        max-width: 520px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        padding: 30px 30px 34px;
+        height: fit-content;
+    }
+    h1 {
+        font-size: 19px;
+        color: var(--dark-blue);
+        margin-bottom: 4px;
+    }
+    .subtitle {
+        font-size: 12.5px;
+        color: #777;
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+    label {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #444;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .field-group { margin-bottom: 16px; }
+    input[type="text"], input[type="tel"], select, textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d3d7e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #fbfbfd;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--light-blue);
+        box-shadow: 0 0 0 3px rgba(47,143,219,0.15);
+    }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: var(--dark-blue);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 6px;
+    }
+    .submit-btn:hover { background: #001c52; }
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 18px;
+        font-size: 12.5px;
+        color: #777;
+        text-decoration: none;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .upload-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--dark-blue);
+        background: #eaf1ff;
+        border: 1px solid #c9dcff;
+        padding: 9px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+    .upload-btn:hover { background: #dfeaff; }
+    .upload-btn input { display: none; }
+    .upload-preview {
+        margin-top: 8px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+    }
+    .upload-preview.show { display: flex; }
+    .upload-preview img {
+        border: 1px solid #d3d7e0;
+        border-radius: 6px;
+        background: #fff;
+        object-fit: contain;
+    }
+    .upload-preview .photo-thumb { width: 56px; height: 68px; }
+    .upload-preview .sig-thumb { width: 90px; height: 40px; }
+    .upload-preview .upload-status { font-size: 11.5px; color: #1a8f4c; font-weight: 700; }
+    .upload-note { font-size: 10.5px; color: #999; margin-top: 5px; line-height: 1.4; }
+    .submit-error {
+        background: #fdecea; color: var(--card-red); font-size: 12.5px; font-weight: 700;
+        padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none;
+    }
+    .submit-error.show { display: block; }
+</style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>📝 Submit Your Details</h1>
+        <p class="subtitle">
+            Fill this in and submit — the admin team will use these details to
+            prepare your ID card.
+        </p>
+
+        <!--
+            ============================================================
+            FORM BACKEND: Supabase (database + file storage)
+
+            This form uploads the photo/signature to Supabase Storage and
+            saves all details in a Supabase table. See README.md for the
+            one-time setup (create table + storage bucket + policies).
+            Fill in your project's URL/key in supabase-config.js.
+            ============================================================
+        -->
+        <div class="submit-error" id="submitError"></div>
+
+        <form id="detailsForm">
+            <div class="field-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" required>
+            </div>
+
+            <div class="row-2">
+                <div class="field-group">
+                    <label for="designation">Designation</label>
+                    <input type="text" id="designation" required>
+                </div>
+                <div class="field-group">
+                    <label for="department">Department</label>
+                    <input type="text" id="department" required>
+                </div>
+            </div>
+
+            <div class="row-2">
+                <div class="field-group">
+                    <label for="bloodGroup">Blood Group</label>
+                    <select id="bloodGroup" required>
+                        <option value="">Select</option>
+                        <option>A POSITIVE</option>
+                        <option>A NEGATIVE</option>
+                        <option>B POSITIVE</option>
+                        <option>B NEGATIVE</option>
+                        <option>AB POSITIVE</option>
+                        <option>AB NEGATIVE</option>
+                        <option>O POSITIVE</option>
+                        <option>O NEGATIVE</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="mobileNo">Mobile No.</label>
+                    <input type="tel" id="mobileNo" pattern="[0-9+\-\s]{7,15}" required>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="address">Address</label>
+                <textarea id="address" required></textarea>
+            </div>
+
+            <div class="field-group">
+                <label>Your Photo</label>
+                <label class="upload-btn">🖼️ Choose Photo
+                    <input type="file" id="photoInput" accept="image/*">
+                </label>
+                <div class="upload-preview" id="photoPreview">
+                    <img class="photo-thumb" id="photoThumb" alt="Photo preview">
+                    <span class="upload-status">Attached ✓</span>
+                </div>
+                <p class="upload-note">Passport-style photo, face clearly visible.</p>
+            </div>
+
+            <div class="field-group">
+                <label>Your Signature</label>
+                <label class="upload-btn">✍️ Choose Signature Image
+                    <input type="file" id="signatureInput" accept="image/*">
+                </label>
+                <div class="upload-preview" id="signaturePreview">
+                    <img class="sig-thumb" id="signatureThumb" alt="Signature preview">
+                    <span class="upload-status">Attached ✓</span>
+                </div>
+                <p class="upload-note">A photo/scan of your signature on plain paper works fine.</p>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Submit Details</button>
+        </form>
+
+        <a href="index.html" class="back-link">← Back to Home</a>
+    </div>
+
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let photoBlob = null;
+    let signatureBlob = null;
+
+    // Compresses/resizes an uploaded image in the browser into a small Blob
+    // (keeps Supabase Storage usage low and uploads fast), and shows a preview.
+    function handleImageUpload(fileInput, previewBox, thumbImg, maxWidth, maxHeight, quality, onReady) {
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    let { width, height } = img;
+                    const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    thumbImg.src = canvas.toDataURL('image/jpeg', quality);
+                    previewBox.classList.add('show');
+
+                    canvas.toBlob(blob => { onReady(blob); }, 'image/jpeg', quality);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    handleImageUpload(
+        document.getElementById('photoInput'),
+        document.getElementById('photoPreview'),
+        document.getElementById('photoThumb'),
+        400, 500, 0.75,
+        blob => { photoBlob = blob; }
+    );
+
+    handleImageUpload(
+        document.getElementById('signatureInput'),
+        document.getElementById('signaturePreview'),
+        document.getElementById('signatureThumb'),
+        500, 200, 0.8,
+        blob => { signatureBlob = blob; }
+    );
+
+    async function uploadImage(blob, prefix) {
+        if (!blob) return null;
+        const path = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const { error } = await sb.storage.from('employee-uploads').upload(path, blob, {
+            contentType: 'image/jpeg',
+            upsert: false
+        });
+        if (error) throw new Error('Image upload failed: ' + error.message);
+        const { data } = sb.storage.from('employee-uploads').getPublicUrl(path);
+        return data.publicUrl;
+    }
+
+    const form = document.getElementById('detailsForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitError = document.getElementById('submitError');
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        submitError.classList.remove('show');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting…';
+
+        try {
+            const photoUrl = await uploadImage(photoBlob, 'photos');
+            const signatureUrl = await uploadImage(signatureBlob, 'signatures');
+
+            const { error } = await sb.from('submissions').insert([{
+                full_name: document.getElementById('fullName').value.trim(),
+                designation: document.getElementById('designation').value.trim(),
+                department: document.getElementById('department').value.trim(),
+                blood_group: document.getElementById('bloodGroup').value,
+                mobile_no: document.getElementById('mobileNo').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                photo_url: photoUrl,
+                signature_url: signatureUrl
+            }]);
+
+            if (error) throw new Error(error.message);
+
+            window.location.href = 'thank-you.html';
+        } catch (err) {
+            submitError.textContent = err.message || 'Something went wrong. Please try again.';
+            submitError.classList.add('show');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Details';
+        }
+    });
+</script>
+
+</body>
+</html>

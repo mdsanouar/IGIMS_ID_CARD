@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thank You — IGIMS ID Card</title>
+<style>
+    :root { --dark-blue: #002366; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #f0f2f7 0%, #dfe7f5 100%);
+        padding: 20px;
+    }
+    .card {
+        max-width: 420px;
+        width: 100%;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        padding: 36px 30px;
+        text-align: center;
+    }
+    .icon {
+        width: 60px; height: 60px; border-radius: 50%;
+        background: #e6f6ea; color: #1a8f4c;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px; margin: 0 auto 18px;
+    }
+    h1 { font-size: 19px; color: var(--dark-blue); margin-bottom: 8px; }
+    p { font-size: 13.5px; color: #666; line-height: 1.6; margin-bottom: 22px; }
+    a {
+        display: inline-block;
+        padding: 10px 22px;
+        background: var(--dark-blue);
+        color: #fff;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 700;
+    }
+    a:hover { background: #001c52; }
+</style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">✓</div>
+        <h1>Thank you!</h1>
+        <p>Your details have been submitted successfully. The admin team will prepare your ID card shortly.</p>
+        <a href="index.html">← Back to Home</a>
+    </div>
+</body>
+</html>
