@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Dynamic PVC Medical ID Card Generator</title>
+<style>
+    :root {
+        --dark-blue: #002366;
+        --card-red: #cc0000;
+        --accent-orange: #e05a00;
+        --light-blue: #2f8fdb;
+        --bg-gradient: linear-gradient(135deg, #fbfbf8 55%, #b9e08f 100%);
+        --panel-bg: #ffffff;
+        --panel-border: #e2e5ec;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background-color: #f0f2f7;
+        font-family: Arial, sans-serif;
+        padding: 24px;
+        color: #1a1a2e;
+    }
+
+    .admin-topbar {
+        max-width: 1200px;
+        margin: 0 auto 20px;
+        background: var(--dark-blue);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 13px;
+    }
+    .admin-topbar-title { font-weight: 700; font-size: 15px; }
+    .admin-topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .admin-topbar-actions a { color: #cfe0ff; text-decoration: none; }
+    .admin-topbar-actions a:hover { text-decoration: underline; }
+    .admin-topbar-sep { opacity: 0.4; }
+    .admin-logout-btn {
+        background: #ffffff22;
+        color: #fff;
+        border: 1px solid #ffffff55;
+        padding: 6px 14px;
+        border-radius: 7px;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .admin-logout-btn:hover { background: #ffffff3a; }
+
+    .submissions-panel {
+        max-width: 1200px;
+        margin: 0 auto 20px;
+        background: #fff;
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        padding: 16px 20px 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+    .submissions-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .submissions-panel-header h2 { font-size: 15px; color: var(--dark-blue); }
+    .submissions-refresh-btn {
+        font-size: 12px; font-weight: 700; color: var(--dark-blue);
+        background: #eaf1ff; border: 1px solid #c9dcff;
+        padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    }
+    .submissions-refresh-btn:hover { background: #dfeaff; }
+    .submissions-list {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    .submissions-empty { font-size: 13px; color: #999; padding: 10px 0; }
+    .submission-card {
+        flex: 0 0 260px;
+        border: 1px solid #e2e5ec;
+        border-radius: 10px;
+        padding: 12px;
+        background: #fbfbfd;
+    }
+    .submission-card .sub-thumbs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .submission-card .sub-thumbs img {
+        border: 1px solid #d3d7e0; border-radius: 6px; background: #fff; object-fit: cover;
+    }
+    .submission-card .sub-photo-thumb { width: 48px; height: 58px; }
+    .submission-card .sub-sig-thumb { width: 90px; height: 40px; object-fit: contain; }
+    .submission-card .sub-field { font-size: 11.5px; margin-bottom: 3px; line-height: 1.4; }
+    .submission-card .sub-field strong { color: #444; }
+    .submission-card .sub-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .submission-card .sub-btn {
+        flex: 1; font-size: 11px; font-weight: 700; padding: 6px 8px;
+        border-radius: 6px; cursor: pointer; border: none;
+    }
+    .submission-card .sub-load-btn { background: var(--dark-blue); color: #fff; }
+    .submission-card .sub-load-btn:hover { background: #001c52; }
+    .submission-card .sub-delete-btn { background: #fdecea; color: var(--card-red); }
+    .submission-card .sub-delete-btn:hover { background: #fbdad7; }
+
+    .app {
+        display: flex;
+        gap: 28px;
+        max-width: 1200px;
+        margin: 0 auto;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    /* ---------------- FORM PANEL ---------------- */
+    .form-panel {
+        flex: 1 1 340px;
+        min-width: 300px;
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        padding: 20px 22px 26px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    .form-panel h2 {
+        font-size: 16px;
+        color: var(--dark-blue);
+        margin-bottom: 4px;
+    }
+
+    .form-panel .subtitle {
+        font-size: 12px;
+        color: #777;
+        margin-bottom: 16px;
+    }
+
+    .field-group {
+        margin-bottom: 12px;
+    }
+
+    .field-group label {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #444;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .field-group input[type="text"],
+    .field-group input[type="date"],
+    .field-group select,
+    .field-group textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d3d7e0;
+        border-radius: 7px;
+        font-size: 13px;
+        font-family: inherit;
+        background: #fbfbfd;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .field-group textarea { resize: vertical; min-height: 44px; }
+
+    .field-group input:focus,
+    .field-group select:focus,
+    .field-group textarea:focus {
+        outline: none;
+        border-color: var(--light-blue);
+        box-shadow: 0 0 0 3px rgba(77,166,255,0.15);
+    }
+
+    .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .section-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dark-blue);
+        margin: 18px 0 8px;
+        padding-top: 12px;
+        border-top: 1px dashed #dfe2ea;
+    }
+    .section-label:first-of-type { border-top: none; padding-top: 0; margin-top: 4px; }
+
+    .upload-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dark-blue);
+        background: #eaf1ff;
+        border: 1px solid #c9dcff;
+        padding: 7px 12px;
+        border-radius: 7px;
+        cursor: pointer;
+        width: 100%;
+        justify-content: center;
+    }
+    .upload-btn:hover { background: #dfeaff; }
+    .upload-btn input { display: none; }
+
+    .instructions-editor ol { padding-left: 0; list-style: none; }
+    .instructions-editor li { display: flex; gap: 6px; margin-bottom: 6px; align-items: flex-start; }
+    .instructions-editor li input { flex: 1; }
+    .instructions-editor .rm-btn {
+        background: #ffe6e6; color: var(--card-red); border: 1px solid #f5b8b8;
+        border-radius: 6px; width: 26px; height: 30px; cursor: pointer; font-weight: 700;
+        flex-shrink: 0;
+    }
+    .add-instruction {
+        font-size: 11.5px; font-weight: 700; color: var(--dark-blue);
+        background: none; border: 1px dashed #b7c4e0; border-radius: 7px;
+        padding: 6px 10px; cursor: pointer; width: 100%; margin-top: 4px;
+    }
+
+    .reset-btn {
+        margin-top: 18px;
+        width: 100%;
+        padding: 10px;
+        background: #f4f5f8;
+        border: 1px solid #d3d7e0;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #555;
+        cursor: pointer;
+    }
+    .reset-btn:hover { background: #ececf1; }
+
+    .download-btn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 8px;
+        background: #eaf1ff;
+        border: 1px solid #c9dcff;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--dark-blue);
+        cursor: pointer;
+    }
+    .download-btn:hover { background: #dfeaff; }
+    .download-btn.primary {
+        background: var(--dark-blue);
+        border-color: var(--dark-blue);
+        color: #fff;
+    }
+    .download-btn.primary:hover { background: #001c52; }
+    .download-btn:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ---------------- PREVIEW PANEL ---------------- */
+    .preview-panel {
+        flex: 1 1 420px;
+        min-width: 320px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        position: sticky;
+        top: 24px;
+    }
+
+    .preview-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #8a8fa3;
+        text-transform: uppercase;
+        margin-bottom: -10px;
+        align-self: flex-start;
+        margin-left: 4px;
+    }
+
+    /* Card Base */
+    .id-card {
+        width: 100%;
+        max-width: 600px;
+        aspect-ratio: 1.58 / 1;
+        background: var(--bg-gradient);
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .corner-tr {
+        position: absolute; top: 0; right: 0; width: 0; height: 0;
+        border-top: 70px solid var(--accent-orange); border-left: 140px solid transparent; z-index: 1;
+    }
+    .corner-bl {
+        position: absolute; bottom: 0; left: 0; width: 0; height: 0;
+        border-bottom: 70px solid var(--accent-orange); border-right: 140px solid transparent; z-index: 1;
+    }
+
+    .content-wrapper {
+        padding: 16px 22px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        position: relative;
+        z-index: 2;
+        overflow: hidden;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 3px;
+        border-bottom: 3px solid var(--dark-blue);
+        padding-bottom: 4px;
+        flex-shrink: 0;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 90px;
+        margin-right: 14px;
+        flex-shrink: 0;
+    }
+
+    .logo {
+        width: 92px;
+        height: 92px;
+        min-width: 92px;
+        min-height: 92px;
+        max-width: 92px;
+        max-height: 92px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: #888;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-sizing: border-box;
+    }
+    .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    .photo-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .id-no {
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-align: center;
+    }
+
+    .header-text { flex-grow: 1; min-width: 0; }
+    .header-text h1 {
+        font-size: 23.5px; font-weight: 900; color: var(--dark-blue); line-height: 1.12; margin-bottom: 1px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; word-break: break-word;
+        text-shadow: 0.5px 0 currentColor, -0.5px 0 currentColor, 0 0.5px currentColor;
+    }
+    .header-text .tagline {
+        font-size: 13px; font-weight: 900; color: #333; text-transform: uppercase;
+        letter-spacing: 0.2px; line-height: 1.2; margin-bottom: 1px; overflow-wrap: break-word;
+    }
+    .header-text .address { color: var(--card-red); font-size: 13px; font-weight: bold; margin-bottom: 1px; overflow-wrap: break-word; }
+    .header-text .contact { color: #333; font-size: 12px; overflow-wrap: break-word; }
+
+    .middle-section { display: flex; flex-grow: 1; gap: 16px; min-height: 0; }
+
+    .photo-box {
+        width: 100px;
+        height: 120px;
+        background-color: #ddd;
+        border: 2px solid #aaa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 12px;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+    .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    .info-section { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
+
+    .id-tag {
+        display: block;
+        width: 100%;
+        margin: 0 0 4px;
+        text-align: center;
+        background-color: #ffeb3b; color: #000; font-weight: bold; font-size: 16.5px;
+        padding: 3px 15px; border: 1px solid #000;
+        max-width: 100%; overflow-wrap: break-word;
+        box-sizing: border-box;
+    }
+
+    .name-bar { background-color: var(--light-blue); width: 100%; padding: 6px 10px; margin-bottom: 5px; display: flex; align-items: center; }
+    .name-bar h2 {
+        color: #ffffff; font-family: "Times New Roman", Times, serif; font-size: 19px; line-height: 1.2;
+        letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        width: 100%;
+    }
+
+    .details { font-size: 16.5px; line-height: 1.45; overflow-wrap: break-word; }
+    .details p { margin-bottom: 3px; display: flex; align-items: baseline; gap: 5px; }
+    .details p:last-child { margin-bottom: 0; }
+    .details span:first-child { font-weight: bold; white-space: nowrap; flex: 0 0 128px; }
+    .details span:last-child { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
+
+    .footer { display: flex; justify-content: flex-end; align-items: flex-end; margin-top: auto; flex-shrink: 0; }
+
+    .signature-box { text-align: center; font-size: 13px; font-weight: bold; flex-shrink: 0; }
+    .signature-line {
+        width: 125px; height: 42px; border-bottom: 1px solid #000; margin-bottom: 3px;
+        display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+        max-width: 100%;
+    }
+    .signature-line img { max-width: 100%; max-height: 42px; object-fit: contain; }
+
+    /* Back */
+    .back .content-wrapper { justify-content: flex-start; }
+    .back-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #ccc; padding-bottom: 8px; margin-bottom: 8px; flex-shrink: 0; gap: 12px; }
+    .back-top { font-size: 14.5px; line-height: 1.45; overflow-wrap: break-word; }
+    .qr-box {
+        width: 66px; height: 66px; flex-shrink: 0;
+        background: #fff; border: 1px solid #ccc; border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; padding: 3px; box-sizing: border-box;
+    }
+    .qr-box img, .qr-box canvas, .qr-box table { width: 100% !important; height: 100% !important; }
+    .holder-signature { text-align: left; font-size: 13px; }
+    .holder-signature .signature-line { width: 145px; height: 42px; margin-top: 5px; margin-left: 0; margin-right: auto; justify-content: flex-start; max-width: 100%; }
+    .holder-signature .signature-line img { max-height: 40px; }
+
+    .instructions-section { margin-top: 2px; }
+    .instructions-section h3 { color: var(--card-red); font-size: 15px; text-decoration: underline; margin-bottom: 6px; }
+    .instructions-section ol { padding-left: 20px; font-size: 15px; line-height: 1.5; color: #000; overflow-wrap: break-word; }
+
+    .not-transferable {
+        text-align: center; color: var(--card-red); font-weight: bold; font-size: 15px;
+        background-color: rgba(255, 255, 255, 0.7); padding: 5px; border-radius: 4px;
+        margin-top: auto;
+        flex-shrink: 0; overflow-wrap: break-word;
+    }
+
+    @media (max-width: 720px) {
+        .preview-panel { position: static; }
+    }
+
+    .id-card.bold-all,
+    .id-card.bold-all * {
+        font-weight: bold !important;
+    }
+
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0 14px;
+        padding: 8px 10px;
+        background: #f7f9fc;
+        border: 1px solid #e2e5ec;
+        border-radius: 8px;
+    }
+    .toggle-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: var(--dark-blue);
+    }
+    .toggle-row label {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #333;
+        cursor: pointer;
+        text-transform: none;
+        margin: 0;
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="authCheckOverlay" style="position:fixed;inset:0;background:#f0f2f7;z-index:9999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;color:#555;font-size:14px;">
+    Checking session…
+</div>
+
+<div class="admin-topbar">
+    <div class="admin-topbar-title">🪪 IGIMS ID Card — Admin</div>
+    <div class="admin-topbar-actions">
+        <a href="user-form.html" target="_blank" rel="noopener">Employee Submission Form ↗</a>
+        <span class="admin-topbar-sep">|</span>
+        <span id="adminUserEmail"></span>
+        <button id="logoutBtn" class="admin-logout-btn">Logout</button>
+    </div>
+</div>
+
+<div class="submissions-panel">
+    <div class="submissions-panel-header">
+        <h2>📥 Pending Employee Submissions</h2>
+        <button id="refreshSubmissionsBtn" class="submissions-refresh-btn">↻ Refresh</button>
+    </div>
+    <div id="submissionsList" class="submissions-list">
+        <p class="submissions-empty">Loading…</p>
+    </div>
+</div>
+
+<div class="app">
+
+    <!-- ============ FORM PANEL ============ -->
+    <div class="form-panel">
+        <h2>Card Details</h2>
+        <p class="subtitle">Fill this in — the card on the right updates instantly.</p>
+
+        <div class="toggle-row">
+            <input type="checkbox" id="boldAllToggle">
+            <label for="boldAllToggle">Make all card text bold</label>
+        </div>
+
+        <div class="section-label">Institute Header</div>
+        <div class="field-group">
+            <label>Institute Name — Line 1</label>
+            <input type="text" id="instituteNameLine1" value="INDIRA GANDHI INSTITUTE OF">
+        </div>
+        <div class="field-group">
+            <label>Institute Name — Line 2</label>
+            <input type="text" id="instituteNameLine2" value="MEDICAL SCIENCES">
+        </div>
+        <div class="field-group">
+            <label>Tagline</label>
+            <input type="text" id="instituteTagline" value="An Autonomous Institute Under Government of Bihar">
+        </div>
+        <div class="field-group">
+            <label>Address</label>
+            <input type="text" id="instituteAddress" value="Sheikhpura, Patna-800 014">
+        </div>
+        <div class="field-group">
+            <label>Contact Line</label>
+            <input type="text" id="instituteContact" value="Ph: 0612-2297631, 2297099 | Fax: 0612-2297225">
+        </div>
+        <div class="field-group">
+            <label>Upload Logo</label>
+            <label class="upload-btn">📷 Choose Logo Image
+                <input type="file" id="logoUpload" accept="image/*">
+            </label>
+        </div>
+
+        <div class="section-label">Cardholder Details</div>
+        <div class="field-group">
+            <label>Full Name</label>
+            <input type="text" id="holderName" value="" placeholder="e.g. DR. JOHN DOE">
+        </div>
+        <div class="row-2">
+            <div class="field-group">
+                <label>Designation</label>
+                <input type="text" id="designation" value="" placeholder="e.g. PROFESSOR & HEAD">
+            </div>
+            <div class="field-group">
+                <label>Department</label>
+                <input type="text" id="department" value="" placeholder="e.g. CARDIOLOGY">
+            </div>
+        </div>
+        <div class="row-2">
+            <div class="field-group">
+                <label>ID Number</label>
+                <input type="text" id="idNumber" value="" placeholder="e.g. IGIMS/000-A">
+            </div>
+            <div class="field-group">
+                <label>Date of Issue</label>
+                <input type="text" id="issueDate" value="" placeholder="DD.MM.YYYY">
+            </div>
+        </div>
+        <div class="row-2">
+            <div class="field-group">
+                <label>Blood Group</label>
+                <select id="bloodGroup">
+                    <option value="" selected>Select</option>
+                    <option>A POSITIVE</option>
+                    <option>A NEGATIVE</option>
+                    <option>B POSITIVE</option>
+                    <option>B NEGATIVE</option>
+                    <option>AB POSITIVE</option>
+                    <option>AB NEGATIVE</option>
+                    <option>O POSITIVE</option>
+                    <option>O NEGATIVE</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Card Tag Text</label>
+                <input type="text" id="cardTag" value="IDENTITY CARD">
+            </div>
+        </div>
+        <div class="field-group">
+            <label>Upload Photo</label>
+            <label class="upload-btn">🖼️ Choose Photo
+                <input type="file" id="photoUpload" accept="image/*">
+            </label>
+        </div>
+        <div class="field-group">
+            <label>Security Officer Title</label>
+            <input type="text" id="officerTitle" value="Authorised Signatory">
+        </div>
+        <div class="field-group">
+            <label>Upload Officer Signature</label>
+            <label class="upload-btn">✍️ Choose Signature Image
+                <input type="file" id="officerSigUpload" accept="image/*">
+            </label>
+        </div>
+
+        <div class="section-label">Back Side</div>
+        <div class="field-group">
+            <label>Back Address Line 1</label>
+            <input type="text" id="backAddr1" value="Indira Gandhi Institute of Medical Sciences">
+        </div>
+        <div class="field-group">
+            <label>Back Address Line 2</label>
+            <input type="text" id="backAddr2" value="Sheikhpura, Patna, Bihar 800014">
+        </div>
+        <div class="field-group">
+            <label>Back Phone</label>
+            <input type="text" id="backPhone" value="0612-2297631">
+        </div>
+        <div class="field-group">
+            <label>Emergency No.</label>
+            <input type="text" id="emergencyPhone" value="0612-2297000">
+        </div>
+        <div class="field-group">
+            <label>Upload Holder Signature</label>
+            <label class="upload-btn">✍️ Choose Signature Image
+                <input type="file" id="holderSigUpload" accept="image/*">
+            </label>
+        </div>
+        <div class="field-group">
+            <label>QR Code Content (optional)</label>
+            <input type="text" id="qrContent" value="" placeholder="Leave blank to auto-generate from card details">
+        </div>
+
+        <div class="section-label">General Instructions</div>
+        <div class="instructions-editor" id="instructionsEditor"></div>
+        <button class="add-instruction" id="addInstruction">+ Add Instruction</button>
+
+        <div class="field-group" style="margin-top:14px;">
+            <label>Footer Notice</label>
+            <input type="text" id="notTransferable" value="NOT TRANSFERABLE">
+        </div>
+
+        <button class="reset-btn" id="loadSampleBtn">Load Sample Data</button>
+        <button class="reset-btn" id="clearAllBtn" style="margin-top:8px;">Clear All Fields</button>
+
+        <div class="section-label">Download</div>
+        <button class="download-btn" id="downloadFrontBtn">⬇ Download Front (PNG)</button>
+        <button class="download-btn" id="downloadBackBtn">⬇ Download Back (PNG)</button>
+        <button class="download-btn primary" id="downloadBothBtn">⬇ Download Both (PNG)</button>
+        <p style="font-size:11px;color:#888;margin-top:6px;line-height:1.5;">
+            If a direct download doesn't start, the image will open in a new tab — just right-click it and choose "Save Image As".
+        </p>
+    </div>
+
+    <!-- ============ PREVIEW PANEL ============ -->
+    <div class="preview-panel">
+        <div class="preview-label">Front</div>
+        <div class="id-card front" id="frontCard">
+            <div class="corner-tr"></div>
+            <div class="corner-bl"></div>
+            <div class="content-wrapper">
+                <div class="header">
+                    <div class="logo-container">
+                        <div class="logo" id="logoBox">LOGO</div>
+                    </div>
+                    <div class="header-text">
+                        <h1 id="outInstituteName"><span id="outInstituteNameLine1">INDIRA GANDHI INSTITUTE OF</span><br><span id="outInstituteNameLine2">MEDICAL SCIENCES</span></h1>
+                        <p class="tagline" id="outInstituteTagline">An Autonomous Institute Under Government of Bihar</p>
+                        <p class="address" id="outInstituteAddress">Sheikhpura, Patna-800 014</p>
+                        <p class="contact" id="outInstituteContact">Ph: 0612-2297631, 2297099 | Fax: 0612-2297225</p>
+                    </div>
+                </div>
+
+                <div class="middle-section">
+                    <div class="photo-column">
+                        <div class="id-no" id="outIdNo"></div>
+                        <div class="photo-box" id="photoBox">Photo</div>
+                    </div>
+                    <div class="info-section">
+                        <div class="id-tag" id="outCardTag">IDENTITY CARD</div>
+                        <div class="name-bar">
+                            <h2 id="outHolderName"></h2>
+                        </div>
+                        <div class="details">
+                            <p><span>Designation:</span> <span id="outDesignation" style="width:auto;font-weight:normal;"></span></p>
+                            <p><span>Department:</span> <span id="outDepartment" style="width:auto;font-weight:normal;"></span></p>
+                            <p><span>Date of Issue:</span> <span id="outIssueDate" style="width:auto;font-weight:normal;"></span></p>
+                            <p><span>Blood Group:</span> <span id="outBloodGroup" style="width:auto;font-weight:bold;color:var(--card-red);"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <div class="signature-box">
+                        <div class="signature-line" id="officerSigLine"></div>
+                        <p id="outOfficerTitle">Authorised Signatory</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-label">Back</div>
+        <div class="id-card back" id="backCard">
+            <div class="content-wrapper">
+                <div class="back-header">
+                    <div class="back-top">
+                        <p><strong>Address:</strong> <span id="outBackAddr1">Indira Gandhi Institute of Medical Sciences</span></p>
+                        <p id="outBackAddr2">Sheikhpura, Patna, Bihar 800014</p>
+                        <p><strong>Phone:</strong> <span id="outBackPhone">0612-2297631</span> &nbsp;|&nbsp; <strong>Emergency:</strong> <span id="outEmergencyPhone">0612-2297000</span></p>
+                    </div>
+                    <div class="qr-box" id="qrBox"></div>
+                </div>
+
+                <div class="instructions-section">
+                    <div class="holder-signature">
+                        <div class="signature-line" id="holderSigLine"></div>
+                        <p>Signature of the Holder</p>
+                    </div>
+                    <h3>GENERAL INSTRUCTIONS</h3>
+                    <ol id="outInstructions"></ol>
+                </div>
+
+                <div class="not-transferable" id="outNotTransferable">NOT TRANSFERABLE</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const defaultInstructions = [
+        "This card must be surrendered to the Security Office upon resignation or retirement.",
+        "In case of loss, report immediately to the Security Office and nearest Police Station.",
+        "The holder must wear and display this card prominently while on duty."
+    ];
+
+    let instructions = [...defaultInstructions];
+    let logoDataUrl = null;
+    let photoDataUrl = null;
+    let officerSigDataUrl = null;
+    let holderSigDataUrl = null;
+
+    const el = id => document.getElementById(id);
+
+    function renderInstructionsEditor() {
+        const container = el('instructionsEditor');
+        container.innerHTML = '';
+        instructions.forEach((text, i) => {
+            const row = document.createElement('div');
+            row.className = 'li';
+            row.innerHTML = `
+                <li>
+                    <input type="text" data-idx="${i}" class="instr-input" value="${text.replace(/"/g, '&quot;')}">
+                    <button class="rm-btn" data-idx="${i}" title="Remove">✕</button>
+                </li>`;
+            container.appendChild(row);
+        });
+        container.querySelectorAll('.instr-input').forEach(input => {
+            input.addEventListener('input', e => {
+                instructions[+e.target.dataset.idx] = e.target.value;
+                renderOutput();
+            });
+        });
+        container.querySelectorAll('.rm-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                instructions.splice(+e.target.dataset.idx, 1);
+                renderInstructionsEditor();
+                renderOutput();
+            });
+        });
+    }
+
+    el('addInstruction').addEventListener('click', () => {
+        instructions.push('New instruction here.');
+        renderInstructionsEditor();
+        renderOutput();
+    });
+
+    function renderOutput() {
+        el('outInstituteNameLine1').textContent = el('instituteNameLine1').value;
+        el('outInstituteNameLine2').textContent = el('instituteNameLine2').value;
+        el('outInstituteTagline').textContent = el('instituteTagline').value;
+        el('outInstituteAddress').textContent = el('instituteAddress').value;
+        el('outInstituteContact').textContent = el('instituteContact').value;
+        el('outIdNo').textContent = el('idNumber').value;
+
+        el('outHolderName').textContent = el('holderName').value;
+        el('outDesignation').textContent = el('designation').value;
+        el('outDepartment').textContent = el('department').value;
+        el('outIssueDate').textContent = el('issueDate').value;
+        el('outBloodGroup').textContent = el('bloodGroup').value;
+        el('outCardTag').textContent = el('cardTag').value;
+        el('outOfficerTitle').textContent = el('officerTitle').value;
+
+        el('outBackAddr1').textContent = el('backAddr1').value;
+        el('outBackAddr2').textContent = el('backAddr2').value;
+        el('outBackPhone').textContent = el('backPhone').value;
+        el('outEmergencyPhone').textContent = el('emergencyPhone').value;
+        el('outNotTransferable').textContent = el('notTransferable').value;
+
+        const ol = el('outInstructions');
+        ol.innerHTML = '';
+        instructions.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ol.appendChild(li);
+        });
+
+        const logoBox = el('logoBox');
+        logoBox.innerHTML = logoDataUrl ? `<img src="${logoDataUrl}" alt="logo">` : 'LOGO';
+
+        const photoBox = el('photoBox');
+        photoBox.innerHTML = photoDataUrl ? `<img src="${photoDataUrl}" alt="photo">` : 'Photo';
+
+        el('officerSigLine').innerHTML = officerSigDataUrl ? `<img src="${officerSigDataUrl}" alt="signature">` : '';
+        el('holderSigLine').innerHTML = holderSigDataUrl ? `<img src="${holderSigDataUrl}" alt="signature">` : '';
+
+        updateQrCode();
+    }
+
+    // ---- QR Code ----
+    let qrCodeInstance = null;
+
+    function buildQrText() {
+        const custom = el('qrContent').value.trim();
+        if (custom) return custom;
+
+        const parts = [
+            el('holderName').value.trim(),
+            el('designation').value.trim(),
+            el('department').value.trim(),
+            el('idNumber').value.trim() ? ('ID: ' + el('idNumber').value.trim()) : '',
+            el('bloodGroup').value.trim() ? ('Blood Group: ' + el('bloodGroup').value.trim()) : '',
+            (el('instituteNameLine1').value.trim() + ' ' + el('instituteNameLine2').value.trim()).trim()
+        ].filter(Boolean);
+
+        return parts.length ? parts.join(' | ') : 'ID Card';
+    }
+
+    function updateQrCode() {
+        const box = el('qrBox');
+        const text = buildQrText();
+
+        if (typeof QRCode === 'undefined') return;
+
+        if (!qrCodeInstance) {
+            box.innerHTML = '';
+            qrCodeInstance = new QRCode(box, {
+                text: text,
+                width: 200,
+                height: 200,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            qrCodeInstance.makeCode(text);
+        }
+    }
+
+    // Bind all text/select inputs for live update
+    document.querySelectorAll('.form-panel input[type="text"], .form-panel select').forEach(input => {
+        input.addEventListener('input', renderOutput);
+        input.addEventListener('change', renderOutput);
+    });
+
+    // Image uploads
+    el('logoUpload').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { logoDataUrl = ev.target.result; renderOutput(); };
+        reader.readAsDataURL(file);
+    });
+
+    el('photoUpload').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { photoDataUrl = ev.target.result; renderOutput(); };
+        reader.readAsDataURL(file);
+    });
+
+    el('officerSigUpload').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { officerSigDataUrl = ev.target.result; renderOutput(); };
+        reader.readAsDataURL(file);
+    });
+
+    el('holderSigUpload').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { holderSigDataUrl = ev.target.result; renderOutput(); };
+        reader.readAsDataURL(file);
+    });
+
+    // ---- Employee Submissions panel (from Supabase) ----
+    async function loadSubmissions() {
+        const listEl = el('submissionsList');
+        listEl.innerHTML = '<p class="submissions-empty">Loading…</p>';
+
+        const { data, error } = await sb
+            .from('submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            listEl.innerHTML = `<p class="submissions-empty">Could not load submissions: ${error.message}</p>`;
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            listEl.innerHTML = '<p class="submissions-empty">No pending submissions.</p>';
+            return;
+        }
+
+        listEl.innerHTML = '';
+        data.forEach(row => {
+            const card = document.createElement('div');
+            card.className = 'submission-card';
+            card.innerHTML = `
+                <div class="sub-thumbs">
+                    ${row.photo_url ? `<img class="sub-photo-thumb" src="${row.photo_url}" alt="photo">` : ''}
+                    ${row.signature_url ? `<img class="sub-sig-thumb" src="${row.signature_url}" alt="signature">` : ''}
+                </div>
+                <div class="sub-field"><strong>${row.full_name || ''}</strong></div>
+                <div class="sub-field">${row.designation || ''} — ${row.department || ''}</div>
+                <div class="sub-field">Blood Group: ${row.blood_group || ''}</div>
+                <div class="sub-field">Mobile: ${row.mobile_no || ''}</div>
+                <div class="sub-field">${row.address || ''}</div>
+                <div class="sub-actions">
+                    <button class="sub-btn sub-load-btn">Load into Card</button>
+                    <button class="sub-btn sub-delete-btn">Delete</button>
+                </div>
+            `;
+
+            card.querySelector('.sub-load-btn').addEventListener('click', () => {
+                el('holderName').value = row.full_name || '';
+                el('designation').value = row.designation || '';
+                el('department').value = row.department || '';
+                el('backAddr1').value = row.address || '';
+                el('backAddr2').value = row.address || '';
+                el('backPhone').value = row.mobile_no || '';
+                if (row.blood_group) el('bloodGroup').value = row.blood_group;
+                if (row.photo_url) photoDataUrl = row.photo_url;
+                if (row.signature_url) holderSigDataUrl = row.signature_url;
+                renderOutput();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            card.querySelector('.sub-delete-btn').addEventListener('click', async () => {
+                if (!confirm('Delete this submission? This cannot be undone.')) return;
+                const { error: delError } = await sb.from('submissions').delete().eq('id', row.id);
+                if (delError) {
+                    alert('Could not delete: ' + delError.message);
+                } else {
+                    loadSubmissions();
+                }
+            });
+
+            listEl.appendChild(card);
+        });
+    }
+
+    el('refreshSubmissionsBtn').addEventListener('click', loadSubmissions);
+
+    // ---- Download as PNG ----
+    async function downloadCard(cardId, filename, btn) {
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Preparing...';
+        try {
+            const node = el(cardId);
+            const canvas = await html2canvas(node, { scale: 3, useCORS: true, backgroundColor: null });
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // Try a direct download first (works in most normal browser tabs)
+            let directDownloadWorked = true;
+            try {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (dlErr) {
+                directDownloadWorked = false;
+            }
+
+            // Reliable fallback: open the image in a new tab so it can always
+            // be saved manually (right-click -> Save Image As), since direct
+            // downloads can be silently blocked inside embedded/sandboxed views.
+            const win = window.open();
+            if (win) {
+                win.document.write(
+                    '<title>' + filename + '</title>' +
+                    '<body style="margin:0;background:#222;display:flex;align-items:center;justify-content:center;min-height:100vh;">' +
+                    '<img src="' + dataUrl + '" style="max-width:100%;height:auto;" alt="' + filename + '">' +
+                    '</body>'
+                );
+            } else if (!directDownloadWorked) {
+                alert('Please allow pop-ups for this page, then try downloading again.');
+            }
+        } catch (err) {
+            alert('Could not generate the image. Please try again.');
+            console.error(err);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = original;
+        }
+    }
+
+    el('downloadFrontBtn').addEventListener('click', e => downloadCard('frontCard', 'id-card-front.png', e.target));
+    el('downloadBackBtn').addEventListener('click', e => downloadCard('backCard', 'id-card-back.png', e.target));
+    el('downloadBothBtn').addEventListener('click', async e => {
+        await downloadCard('frontCard', 'id-card-front.png', e.target);
+        await downloadCard('backCard', 'id-card-back.png', e.target);
+    });
+
+    el('boldAllToggle').addEventListener('change', e => {
+        el('frontCard').classList.toggle('bold-all', e.target.checked);
+        el('backCard').classList.toggle('bold-all', e.target.checked);
+    });
+
+    el('loadSampleBtn').addEventListener('click', () => {
+        el('instituteNameLine1').value = "INDIRA GANDHI INSTITUTE OF";
+        el('instituteNameLine2').value = "MEDICAL SCIENCES";
+        el('instituteTagline').value = "An Autonomous Institute Under Government of Bihar";
+        el('instituteAddress').value = "Sheikhpura, Patna-800 014";
+        el('instituteContact').value = "Ph: 0612-2297631, 2297099 | Fax: 0612-2297225";
+        el('holderName').value = "DR. SANGEETA PANKAJ";
+        el('designation').value = "PROFESSOR & HEAD";
+        el('department').value = "GYNECOLOGICAL ONCOLOGY";
+        el('idNumber').value = "IGIMS/839-A";
+        el('issueDate').value = "31.08.2019";
+        el('bloodGroup').value = "B POSITIVE";
+        el('cardTag').value = "IDENTITY CARD";
+        el('officerTitle').value = "Authorised Signatory";
+        el('backAddr1').value = "Indira Gandhi Institute of Medical Sciences";
+        el('backAddr2').value = "Sheikhpura, Patna, Bihar 800014";
+        el('backPhone').value = "0612-2297631";
+        el('emergencyPhone').value = "0612-2297000";
+        el('notTransferable').value = "NOT TRANSFERABLE";
+        el('qrContent').value = "";
+        instructions = [...defaultInstructions];
+        logoDataUrl = null;
+        photoDataUrl = null;
+        officerSigDataUrl = null;
+        holderSigDataUrl = null;
+        el('logoUpload').value = '';
+        el('photoUpload').value = '';
+        el('officerSigUpload').value = '';
+        el('holderSigUpload').value = '';
+        el('boldAllToggle').checked = false;
+        el('frontCard').classList.remove('bold-all');
+        el('backCard').classList.remove('bold-all');
+        renderInstructionsEditor();
+        renderOutput();
+    });
+
+    el('clearAllBtn').addEventListener('click', () => {
+        el('instituteNameLine1').value = "";
+        el('instituteNameLine2').value = "";
+        el('instituteTagline').value = "";
+        el('instituteAddress').value = "";
+        el('instituteContact').value = "";
+        el('holderName').value = "";
+        el('designation').value = "";
+        el('department').value = "";
+        el('idNumber').value = "";
+        el('issueDate').value = "";
+        el('bloodGroup').value = "";
+        el('cardTag').value = "";
+        el('officerTitle').value = "";
+        el('backAddr1').value = "";
+        el('backAddr2').value = "";
+        el('backPhone').value = "";
+        el('emergencyPhone').value = "";
+        el('notTransferable').value = "";
+        el('qrContent').value = "";
+        instructions = [];
+        logoDataUrl = null;
+        photoDataUrl = null;
+        officerSigDataUrl = null;
+        holderSigDataUrl = null;
+        el('logoUpload').value = '';
+        el('photoUpload').value = '';
+        el('officerSigUpload').value = '';
+        el('holderSigUpload').value = '';
+        el('boldAllToggle').checked = false;
+        el('frontCard').classList.remove('bold-all');
+        el('backCard').classList.remove('bold-all');
+        renderInstructionsEditor();
+        renderOutput();
+    });
+
+    // Init
+    el('logoutBtn').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        location.href = 'login.html';
+    });
+
+    renderInstructionsEditor();
+    renderOutput();
+
+    // ---- Auth guard: confirm a real Supabase session exists ----
+    (async function checkAuth() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+            location.replace('login.html');
+            return;
+        }
+        el('adminUserEmail').textContent = session.user.email;
+        el('authCheckOverlay').remove();
+        loadSubmissions();
+    })();
+</script>
+
+</body>
+</html>
