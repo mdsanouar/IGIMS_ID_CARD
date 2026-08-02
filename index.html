@@ -28,8 +28,10 @@
             font-family: Arial, sans-serif;
 
             background: linear-gradient(135deg, #0b2c6d 0%, #154a9f 45%, #2f8fdb 100%);
-            overflow: hidden;
             position: relative;
+
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         body::before,
@@ -56,25 +58,6 @@
             background: #87cefa;
             bottom: -150px;
             right: -120px;
-        }
-
-        .wrap {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 760px;
-        }
-
-        .title {
-            color: #fff;
-            font-size: 30px;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: rgba(255, 255, 255, .85);
-            margin-bottom: 35px;
         }
 
         .wrap {
